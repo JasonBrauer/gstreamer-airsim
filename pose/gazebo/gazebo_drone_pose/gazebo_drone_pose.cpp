@@ -122,7 +122,7 @@ void GenerateCbLocalPose::cbLocalPose(ConstPosesStampedPtr& msg) {
             // if (count % MESSAGE_THROTTLE == 0) {
 
             std::cout << "Packet Number: " << count << ", Drone Id: "
-            << std::to_string(this->droneIds[current_drone_name])) << ", Timestamp: "
+            << std::to_string(this->droneIds[current_drone_name]) << ", Timestamp: "
             << this->getCurrentTimeInFormat() << " , Drone Position: "
             << std::to_string(drone_pose.x) << ", "
             << std::to_string(drone_pose.y) << ", "

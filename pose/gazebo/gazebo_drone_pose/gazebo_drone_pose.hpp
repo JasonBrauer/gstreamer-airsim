@@ -30,7 +30,7 @@ class GenerateCbLocalPose {
             gazebo::transport::NodePtr gazeboNodePtr
         );
 
-        std::string GenerateCbLocalPose::getCurrentTimeInFormat();
+        std::string getCurrentTimeInFormat();
 
     private:
         PoseSender* poseSender;

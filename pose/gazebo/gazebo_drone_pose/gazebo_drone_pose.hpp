@@ -29,6 +29,9 @@ class GenerateCbLocalPose {
         gazebo::transport::SubscriberPtr subscribeGazeboNode(
             gazebo::transport::NodePtr gazeboNodePtr
         );
+
+        std::string getCurrentTimeInFormat();
+
     private:
         PoseSender* poseSender;
         std::unordered_map<std::string, uint16_t> droneIds;

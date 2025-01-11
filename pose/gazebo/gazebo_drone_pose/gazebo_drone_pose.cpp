@@ -4,6 +4,12 @@
 #include "pose.hpp"
 #include "pose_sender.hpp"
 
+#include <iostream>
+#include <iomanip>
+#include <chrono>
+#include <ctime>
+#include <sstream>
+
 constexpr int NWIDTH = 7;
 static constexpr int MESSAGE_THROTTLE = 100;
 
@@ -42,6 +48,26 @@ void GenerateCbLocalPose::trackDroneIds(std::string droneName) {
     }
 
     this->uniqueDroneCount++;
+}
+
+
+std::string GenerateCbLocalPose::getCurrentTimeInFormat(){
+    auto now = std::chrono::system_clock::now();
+
+    // Convert to time_t to extract date and time components
+    std::time_t currentTime = std::chrono::system_clock::to_time_t(now);
+    std::tm localTime = *std::localtime(&currentTime);
+
+    // Extract fractional seconds
+    auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(
+        now.time_since_epoch()) % 1'000'000;
+    
+     // Use a stringstream to format the output as a string
+    std::ostringstream oss;
+    oss << std::put_time(&localTime, "%Y-%m-%d %H:%M:%S")
+        << std::setw(6) << std::setfill('0') << microseconds.count();
+
+    return oss.str();
 }
 
 
@@ -93,19 +119,35 @@ void GenerateCbLocalPose::cbLocalPose(ConstPosesStampedPtr& msg) {
             drone_pose.xi = ox;
             drone_pose.yj = oy;
             drone_pose.zk = oz;
-            if (count % MESSAGE_THROTTLE == 0) {
-                (std::cout << "Drone name: " + current_drone_name << 
-                ", Drone id: " + std::to_string(this->droneIds[current_drone_name]));
-                (std::cout << "\nDrone Position: " + 
-                std::to_string(drone_pose.x) + ", " +
-                std::to_string(drone_pose.y) + ", " +
-                std::to_string(drone_pose.z));
-                (std::cout << "\nDrone Orientation: " + 
-                std::to_string(drone_pose.w) + ", " +
-                std::to_string(drone_pose.xi) + ", " +
-                std::to_string(drone_pose.yj) + ", " +
-                std::to_string(drone_pose.zk));
-            }
+            // if (count % MESSAGE_THROTTLE == 0) {
+
+            std::cout << "Packet Number: " << count << ", Drone Id: "
+            << std::to_string(this->droneIds[current_drone_name]) << ", Timestamp: "
+            << this->getCurrentTimeInFormat() << " , Drone Position: "
+            << std::to_string(drone_pose.x) << ", "
+            << std::to_string(drone_pose.y) << ", "
+            << std::to_string(drone_pose.z) << ", Drone Orientation: "
+            << std::to_string(drone_pose.w) << ", "
+            << std::to_string(drone_pose.xi) << ", "
+            << std::to_string(drone_pose.yj) << ", "
+            << std::to_string(drone_pose.zk) 
+            << std::endl;
+
+
+
+                // (std::cout << "Drone name: " + current_drone_name << 
+                // ", Drone id: " + std::to_string(this->droneIds[current_drone_name]));
+                // (std::cout << "\nDrone Position: " + 
+                // std::to_string(drone_pose.x) + ", " +
+                // std::to_string(drone_pose.y) + ", " +
+                // std::to_string(drone_pose.z));
+                // (std::cout << "\nDrone Orientation: " + 
+                // std::to_string(drone_pose.w) + ", " +
+                // std::to_string(drone_pose.xi) + ", " +
+                // std::to_string(drone_pose.yj) + ", " +
+                // std::to_string(drone_pose.zk));
+
+            // }
         }
         else if (
             msg_name.substr(msg_name.find("::") + 2, std::string::npos) == "cgo3_camera_link"
@@ -117,16 +159,17 @@ void GenerateCbLocalPose::cbLocalPose(ConstPosesStampedPtr& msg) {
             camera_pose.xi = ox;
             camera_pose.yj = oy;
             camera_pose.zk = oz;
-            if (count % MESSAGE_THROTTLE == 0) {
-                // messages should be grouped together in sequence for each drone, so the following
-                // camera orientation is for the drone id associated with the drone position above
-                (std::cout << "\nCamera Orientation: " + 
-                std::to_string(camera_pose.w) + ", " +
-                std::to_string(camera_pose.xi) + ", " +
-                std::to_string(camera_pose.yj) + ", " +
-                std::to_string(camera_pose.zk)
-                << std::endl);
-            }
+
+            // if (count % MESSAGE_THROTTLE == 0) {
+            //     // messages should be grouped together in sequence for each drone, so the following
+            //     // camera orientation is for the drone id associated with the drone position above
+            //     (std::cout << "\nCamera Orientation: " + 
+            //     std::to_string(camera_pose.w) + ", " +
+            //     std::to_string(camera_pose.xi) + ", " +
+            //     std::to_string(camera_pose.yj) + ", " +
+            //     std::to_string(camera_pose.zk)
+            //     << std::endl);
+            // }
         }
 
         // 0 doesn't work because initial state is zero for each drone, so using -1.0
@@ -139,13 +182,15 @@ void GenerateCbLocalPose::cbLocalPose(ConstPosesStampedPtr& msg) {
                 .camera = camera_pose,
                 .drone_id = this->droneIds[current_drone_name]
             };
+
+
             // since all poses are grouped together for each drone within a message,
             // reset camera_pose and drone_pose to default values after sending a message
             // all drone a poses, then all drone b poses, then all drone c poses, . . .
             this->poseSender->send_pose_message(pose_message);
-            if (count % MESSAGE_THROTTLE == 0) {
-                std::cout << "Sent pose for drone id: " << pose_message.drone_id << std::endl;
-            }
+            // if (count % MESSAGE_THROTTLE == 0) {
+            //     std::cout << "Sent pose for drone id: " << pose_message.drone_id << std::endl;
+            // }
             drone_pose.x = -1.0;
             drone_pose.y = -1.0;
             drone_pose.z = -1.0;
@@ -163,11 +208,9 @@ void GenerateCbLocalPose::cbLocalPose(ConstPosesStampedPtr& msg) {
             camera_pose.zk = -1.0;
         }
     }
-
-
-    if (count % MESSAGE_THROTTLE == 0) {
-        std::cout << std::endl;
-    }
+    // if (count % MESSAGE_THROTTLE == 0) {
+    //     std::cout << std::endl;
+    // }
 
     ++count;
 }
